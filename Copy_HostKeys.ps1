@@ -2,10 +2,12 @@
 # Script        : Copy_HostKeys.dat
 # Purpose       : "@(#) Purpose: Send HostKeys.dat file to standby server"
 # Contributor   : 2016 United Natural Foods, Inc.
-# Control       : "@(#) Revision: 1.0.0"
+# Control       : "@(#) Revision: 1.0.1"
 # Description   : Copies the HostKeys.dat file for SSH from the active to the
 #               : standby server
 # History       : 2016/01/15 - 1.0.0 - PWM - Created
+#               : 2016/01/21 - 1.0.1 - PWM - Added logging and fixed the
+#               :                            equality operators.
 ##############################################################################
 
 # Load the JAMS module
@@ -15,8 +17,8 @@ import-module jams
 $status = get-jamsfailoverstatus -server localhost
 
 # Only perform this activity if this is the ACTIVE node
-if ($status.Status.Trim(" ") = "Active") {
-	if ($status.Role = "Secondary") {
+if ($status.Status.Trim(" ") -eq "Active") {
+	if ($status.Role.Trim(" ") -eq "Secondary") {
 		# If this server is the Secondary server, our target will be the Primary.
 		$target = $status.Primary.Trim(" ")
   } else {
@@ -30,5 +32,10 @@ if ($status.Status.Trim(" ") = "Active") {
   $targetHostKeys = Get-ChildItem -Path "\\$target\c$\ProgramData\IsolatedStorage" -Recurse -Directory -Force -Filter 'AssemFiles'
 
 	# Copy the HostKeys.dat file to the target directory
-  Copy-Item $sourceHostKeys.FullName $targetHostKeys.FullName
+  $src = $sourceHostKeys.FullName;
+  $trg = $targetHostKeys.FullName
+  write-host "Source: $src`nTarget: $trg"
+
+  # Copy the current "production" version to the standby environment.
+  Copy-Item $src $trg
 }
